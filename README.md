@@ -10,11 +10,9 @@ Unlike some other similar exporters, it does not call the
 
 ## Building
 
-The repository includes `nvml.h`, so there are no special requirements from the
-build environment. `go get` should be able to build the exporter binary.
-
 ```
-go get github.com/mindprince/nvidia_gpu_prometheus_exporter
+make build
+make push
 ```
 
 ## Running
@@ -46,12 +44,3 @@ And you will need to do one of the following to give it access to the GPU
 devices:
 - Run with `--privileged`
 - If you are on docker v17.04.0-ce or above, run with `--device-cgroup-rule 'c 195:* mrw'`
-- Run with `--device /dev/nvidiactl:/dev/nvidiactl /dev/nvidia0:/dev/nvidia0 /dev/nvidia1:/dev/nvidia1 <and-so-on-for-all-nvidia-devices>`
-
-If you don't want to do the above, you can run it using nvidia-docker.
-
-## Running using [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)
-
-```
-nvidia-docker run -p 9445:9445 -ti mindprince/nvidia_gpu_prometheus_exporter:0.1
-```
