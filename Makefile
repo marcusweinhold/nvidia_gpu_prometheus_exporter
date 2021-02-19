@@ -1,7 +1,7 @@
 build:
-	docker build -t mbigras/nvidia_gpu_prometheus_exporter .
+	docker build -t cfsmp3/nvidia_gpu_prometheus_exporter .
 
 push: build
-	docker push mbigras/nvidia_gpu_prometheus_exporter
+	docker push cfsmp3/nvidia_gpu_prometheus_exporter
 
 .PHONY: build push
