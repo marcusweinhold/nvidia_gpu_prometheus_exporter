@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"sync"
     "time"
-    "fmt"
 
 	"github.com/mindprince/gonvml"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,33 +36,41 @@ type Metrics struct {
 	Devices []*Device
 }
 
+type MaybeMetric struct {
+	value float64;
+    isPresent bool;
+}
+
+func setMetric (value float64) MaybeMetric {
+    return MaybeMetric {value: value, isPresent: true}
+}
+
+func unsetMetric (value float64) MaybeMetric {
+    return MaybeMetric {value: 0, isPresent: false}
+}
+
 type Device struct {
 	Index                 string
 	MinorNumber           string
 	Name                  string
 	UUID                  string
-	Temperature           float64
-	PowerUsage            float64
-	PowerUsageAverage     float64
-	FanSpeed              float64
-	MemoryTotal           float64
-	MemoryUsed            float64
-	UtilizationMemory     float64
-	UtilizationGPU        float64
-	UtilizationGPUAverage float64
-    DutyCycle             float64
-    AvgDuty               float64
-    EncUsage              float64
-    DecUsage              float64
+	Temperature           MaybeMetric
+	PowerUsage            MaybeMetric
+	PowerUsageAverage     MaybeMetric
+	FanSpeed              MaybeMetric
+	MemoryTotal           MaybeMetric
+	MemoryUsed            MaybeMetric
+	UtilizationMemory     MaybeMetric
+	UtilizationGPU        MaybeMetric
+	UtilizationGPUAverage MaybeMetric
+    DutyCycle             MaybeMetric
+    AvgDuty               MaybeMetric
+    EncUsage              MaybeMetric
+    DecUsage              MaybeMetric
 }
 
 
 func collectMetrics() (*Metrics, error) {
-	// if err := gonvml.Initialize(); err != nil {
-	// 	return nil, err
-	// }
-	// defer gonvml.Shutdown()
-
 	version, err := gonvml.SystemDriverVersion()
 	if err != nil {
 		return nil, err
@@ -81,84 +88,93 @@ func collectMetrics() (*Metrics, error) {
 	for index := 0; index < int(numDevices); index++ {
 		device, err := gonvml.DeviceHandleByIndex(uint(index))
 		if err != nil {
-            log.Printf("Failed to get deviceByIndex", index, err)
-			return nil, err
+			continue
 		}
 
 		uuid, err := device.UUID()
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		name, err := device.Name()
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		minorNumber, err := device.MinorNumber()
 		if err != nil {
-			return nil, err
+			continue
 		}
 
+	    var MaybeTemperature            MaybeMetric
+	    var MaybePowerUsage             MaybeMetric
+	    var MaybePowerUsageAverage      MaybeMetric
+	    var MaybeFanSpeed               MaybeMetric
+	    var MaybeMemoryTotal            MaybeMetric
+	    var MaybeMemoryUsed             MaybeMetric
+	    var MaybeUtilizationMemory      MaybeMetric
+	    var MaybeUtilizationGPU         MaybeMetric
+	    var MaybeUtilizationGPUAverage  MaybeMetric
+        var MaybeDutyCycle              MaybeMetric
+        var MaybeAvgDuty                MaybeMetric
+        var MaybeEncUsage               MaybeMetric
+        var MaybeDecUsage               MaybeMetric
+
 		temperature, err := device.Temperature()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeTemperature = setMetric(float64 (temperature))
 		}
 
 		powerUsage, err := device.PowerUsage()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybePowerUsage = setMetric (float64 (powerUsage))
 		}
 
 		powerUsageAverage, err := device.AveragePowerUsage(averageDuration)
-		if err != nil {
-            powerUsageAverage = 0
+		if err == nil {
+            MaybePowerUsageAverage = setMetric (float64 (powerUsageAverage))
 		}
 
-        var fanSpeed uint = 0
-
-        if !*disableFanSpeed {
-            //var err
-		    fanSpeed, err = device.FanSpeed()
-		    if err != nil {
-                log.Printf("Failed fan")
-                return nil, fmt.Errorf("FanSpeed: %w", err)
-		    }
+        fanSpeed, err := device.FanSpeed()
+	    if err == nil {
+                MaybeFanSpeed = setMetric (float64 (fanSpeed))
         }
 
 		memoryTotal, memoryUsed, err := device.MemoryInfo()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeMemoryTotal = setMetric (float64 (memoryTotal))
+            MaybeMemoryUsed = setMetric (float64 (memoryUsed))
 		}
 
 		utilizationGPU, utilizationMemory, err := device.UtilizationRates()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeUtilizationGPU = setMetric (float64 (utilizationGPU))
+            MaybeUtilizationMemory = setMetric (float64 (utilizationMemory))
 		}
 
 		utilizationGPUAverage, err := device.AverageGPUUtilization(averageDuration)
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeUtilizationGPUAverage = setMetric (float64 (utilizationGPUAverage))
 		}
 
 		encUsage, _, err := device.EncoderUtilization()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeEncUsage = setMetric (float64 (encUsage))
 		}
 
 		decUsage, _, err := device.DecoderUtilization()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeDecUsage = setMetric (float64 (decUsage))
 		}
 
 		dutyCycle, _, err := device.UtilizationRates()
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeDutyCycle = setMetric (float64 (dutyCycle))
 		}
 
         avgDuty, err := device.AverageGPUUtilization(averageDuration)
-		if err != nil {
-			return nil, err
+		if err == nil {
+            MaybeAvgDuty = setMetric (float64 (avgDuty))
 		}
 
 		metrics.Devices = append(metrics.Devices,
@@ -167,19 +183,19 @@ func collectMetrics() (*Metrics, error) {
 				MinorNumber:            strconv.Itoa(int(minorNumber)),
 				Name:                   name,
 				UUID:                   uuid,
-				Temperature:            float64(temperature),
-				PowerUsage:             float64(powerUsage),
-				PowerUsageAverage:      float64(powerUsageAverage),
-				FanSpeed:               float64(fanSpeed),
-				MemoryTotal:            float64(memoryTotal),
-				MemoryUsed:             float64(memoryUsed),
-				UtilizationMemory:      float64(utilizationMemory),
-				UtilizationGPU:         float64(utilizationGPU),
-				UtilizationGPUAverage:  float64(utilizationGPUAverage),
-                EncUsage:               float64(encUsage),
-                DecUsage:               float64(decUsage),
-                DutyCycle:              float64(dutyCycle),
-                AvgDuty:                float64(avgDuty),
+				Temperature:            MaybeTemperature,
+				PowerUsage:             MaybePowerUsage,
+				PowerUsageAverage:      MaybePowerUsageAverage,
+				FanSpeed:               MaybeFanSpeed,
+				MemoryTotal:            MaybeMemoryTotal,
+				MemoryUsed:             MaybeMemoryUsed,
+				UtilizationMemory:      MaybeUtilizationMemory,
+				UtilizationGPU:         MaybeUtilizationGPU,
+				UtilizationGPUAverage:  MaybeUtilizationGPUAverage,
+                EncUsage:               MaybeEncUsage,
+                DecUsage:               MaybeDecUsage,
+                DutyCycle:              MaybeDutyCycle,
+                AvgDuty:                MaybeAvgDuty,
 			})
 	}
 
@@ -347,13 +363,6 @@ func NewCollector() *Collector {
 }
 
 func (c *Collector) Describe(descs chan<- *prometheus.Desc) {
-	// ch <- c.numDevices.Desc()
-	// c.usedMemory.Describe(ch)
-	// c.totalMemory.Describe(ch)
-	// c.dutyCycle.Describe(ch)
-	// c.powerUsage.Describe(ch)
-	// c.temperature.Describe(ch)
-	// c.fanSpeed.Describe(ch)
 	c.deviceCount.Describe(descs)
 	c.deviceInfo.Describe(descs)
 	c.fanSpeed.Describe(descs)
@@ -389,19 +398,22 @@ func (e *Collector) Collect(metrics chan<- prometheus.Metric) {
 	for i := 0; i < len(data.Devices); i++ {
 		d := data.Devices[i]
 		e.deviceInfo.WithLabelValues(d.Index, d.MinorNumber, d.Name, d.UUID).Set(1)
-		e.fanSpeed.WithLabelValues(d.MinorNumber).Set(d.FanSpeed)
-		e.memoryTotal.WithLabelValues(d.MinorNumber).Set(d.MemoryTotal)
-		e.memoryUsed.WithLabelValues(d.MinorNumber).Set(d.MemoryUsed)
-		e.powerUsage.WithLabelValues(d.MinorNumber).Set(d.PowerUsage)
-		e.powerUsageAverage.WithLabelValues(d.MinorNumber).Set(d.PowerUsageAverage)
-		e.temperatures.WithLabelValues(d.MinorNumber).Set(d.Temperature)
-		e.utilizationGPU.WithLabelValues(d.MinorNumber).Set(d.UtilizationGPU)
-		e.utilizationGPUAverage.WithLabelValues(d.MinorNumber).Set(d.UtilizationGPUAverage)
-		e.utilizationMemory.WithLabelValues(d.MinorNumber).Set(d.UtilizationMemory)
-        e.encUsage.WithLabelValues(d.MinorNumber).Set(d.EncUsage)
-        e.decUsage.WithLabelValues(d.MinorNumber).Set(d.DecUsage)
-        e.dutyCycle.WithLabelValues(d.MinorNumber).Set(d.DutyCycle)
-        e.avgDuty.WithLabelValues(d.MinorNumber).Set(d.AvgDuty)
+        if d.FanSpeed.isPresent {
+		    e.fanSpeed.WithLabelValues(d.MinorNumber).Set(d.FanSpeed.value)
+        }
+
+		e.memoryTotal.WithLabelValues(d.MinorNumber).Set(d.MemoryTotal.value)
+		e.memoryUsed.WithLabelValues(d.MinorNumber).Set(d.MemoryUsed.value)
+		e.powerUsage.WithLabelValues(d.MinorNumber).Set(d.PowerUsage.value)
+		e.powerUsageAverage.WithLabelValues(d.MinorNumber).Set(d.PowerUsageAverage.value)
+		e.temperatures.WithLabelValues(d.MinorNumber).Set(d.Temperature.value)
+		e.utilizationGPU.WithLabelValues(d.MinorNumber).Set(d.UtilizationGPU.value)
+		e.utilizationGPUAverage.WithLabelValues(d.MinorNumber).Set(d.UtilizationGPUAverage.value)
+		e.utilizationMemory.WithLabelValues(d.MinorNumber).Set(d.UtilizationMemory.value)
+        e.encUsage.WithLabelValues(d.MinorNumber).Set(d.EncUsage.value)
+        e.decUsage.WithLabelValues(d.MinorNumber).Set(d.DecUsage.value)
+        e.dutyCycle.WithLabelValues(d.MinorNumber).Set(d.DutyCycle.value)
+        e.avgDuty.WithLabelValues(d.MinorNumber).Set(d.AvgDuty.value)
 	}
 
 	e.deviceCount.Collect(metrics)
