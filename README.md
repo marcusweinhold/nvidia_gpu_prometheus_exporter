@@ -1,12 +1,21 @@
-NVIDIA GPU Prometheus Exporter
-------------------------------
+NVIDIA GPU Prometheus Exporter - community fork
+-----------------------------------------------
 
 This is a [Prometheus Exporter](https://prometheus.io/docs/instrumenting/exporters/) for
-exporting NVIDIA GPU metrics. It uses the [Go bindings](https://github.com/mindprince/gonvml)
+exporting NVIDIA GPU metrics. It uses the [Go bindings](https://github.com/cfsmp3/gonvml)
 for [NVIDIA Management Library](https://developer.nvidia.com/nvidia-management-library-nvml)
 (NVML) which is a C-based API that can be used for monitoring NVIDIA GPU devices.
 Unlike some other similar exporters, it does not call the
 [`nvidia-smi`](https://developer.nvidia.com/nvidia-system-management-interface) binary.
+
+Note: I'm calling this "community" because the starting point is a merge of pending
+requests on the original mindprince's repo, plus a lot of changes from other forks
+that for whatever reason weren't sent upstream at all.
+
+And then, whatever else I add.
+
+This fork will be used extensively in production and as such as it will maintained
+for the forseable future.
 
 ## Building
 
@@ -31,7 +40,7 @@ the `-web.listen-address` flag.
 ## Running inside a container
 
 There's a docker image available on Docker Hub at
-[mindprince/nvidia_gpu_prometheus_exporter](https://hub.docker.com/r/mindprince/nvidia_gpu_prometheus_exporter/)
+[cfsmp3/nvidia_gpu_prometheus_exporter](https://hub.docker.com/r/cfsmp3/nvidia_gpu_prometheus_exporter/)
 
 If you are running the exporter inside a container, you will need to do the
 following to give the container access to NVML library:
