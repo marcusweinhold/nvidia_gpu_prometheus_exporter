@@ -22,7 +22,7 @@ const (
 
 var (
     addr = flag.String("web.listen-address", ":9445", "Address to listen on for web interface and telemetry.")
-    disableFanSpeed = flag.Bool("disable-fanspeed", false, "Disable fanspeed metric")
+    enableFanSpeed = flag.Bool("enable-fanspeed", true, "Enable fanspeed metric")
 
     labels = []string{"minor_number", "uuid", "name"}
 
@@ -581,7 +581,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.temperatureThresholdSlowDown.WithLabelValues(minor, uuid, name).Set(float64(temperature_threshold_slowdown))
         }
 
-        if !*disableFanSpeed {
+        if *enableFanSpeed {
             fanSpeed, err := dev.FanSpeed()
             if err != nil {
                 log.Printf("FanSpeed() error: %v", err)
