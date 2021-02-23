@@ -35,35 +35,44 @@ var (
 
 type Collector struct {
     sync.Mutex
-    numDevices              prometheus.Gauge
-    usedMemory              *prometheus.GaugeVec
-    totalMemory             *prometheus.GaugeVec
-    usedBar1Memory          *prometheus.GaugeVec
-    totalBar1Memory         *prometheus.GaugeVec
-    powerUsage              *prometheus.GaugeVec
-    avgPowerUsage           *prometheus.GaugeVec
-    temperature             *prometheus.GaugeVec
-    fanSpeed                *prometheus.GaugeVec
-    encUsage                *prometheus.GaugeVec
-    decUsage                *prometheus.GaugeVec
-    GPUUtilizationRate      *prometheus.GaugeVec
-    avgGPUUtilization       *prometheus.GaugeVec
-    memoryUtilizationRate   *prometheus.GaugeVec
-    computeMode             *prometheus.GaugeVec
-    performanceState        *prometheus.GaugeVec
-    grClockCurrent          *prometheus.GaugeVec
-    grClockMax              *prometheus.GaugeVec
-    SMClockCurrent          *prometheus.GaugeVec
-    SMClockMax              *prometheus.GaugeVec
-    memClockCurrent         *prometheus.GaugeVec
-    memClockMax             *prometheus.GaugeVec
-    videoClockCurrent       *prometheus.GaugeVec
-    videoClockMax           *prometheus.GaugeVec
-    powerLimitConstraintsMin *prometheus.GaugeVec
-    powerLimitConstraintsMax *prometheus.GaugeVec
-    powerState              *prometheus.GaugeVec
-    powerLimitManagement    *prometheus.GaugeVec
-    powerLimitEnforced      *prometheus.GaugeVec
+    numDevices                      prometheus.Gauge
+    usedMemory                      *prometheus.GaugeVec
+    totalMemory                     *prometheus.GaugeVec
+    usedBar1Memory                  *prometheus.GaugeVec
+    totalBar1Memory                 *prometheus.GaugeVec
+    powerUsage                      *prometheus.GaugeVec
+    avgPowerUsage                   *prometheus.GaugeVec
+    temperature                     *prometheus.GaugeVec
+    temperatureThresholdShutDown    *prometheus.GaugeVec
+    temperatureThresholdSlowDown    *prometheus.GaugeVec
+    fanSpeed                        *prometheus.GaugeVec
+    encUsage                        *prometheus.GaugeVec
+    decUsage                        *prometheus.GaugeVec
+    GPUUtilizationRate              *prometheus.GaugeVec
+    avgGPUUtilization               *prometheus.GaugeVec
+    memoryUtilizationRate           *prometheus.GaugeVec
+    computeMode                     *prometheus.GaugeVec
+    performanceState                *prometheus.GaugeVec
+    grClockCurrent                  *prometheus.GaugeVec
+    grClockMax                      *prometheus.GaugeVec
+    SMClockCurrent                  *prometheus.GaugeVec
+    SMClockMax                      *prometheus.GaugeVec
+    memClockCurrent                 *prometheus.GaugeVec
+    memClockMax                     *prometheus.GaugeVec
+    videoClockCurrent               *prometheus.GaugeVec
+    videoClockMax                   *prometheus.GaugeVec
+    powerLimitConstraintsMin        *prometheus.GaugeVec
+    powerLimitConstraintsMax        *prometheus.GaugeVec
+    powerState                      *prometheus.GaugeVec
+    powerLimitManagement            *prometheus.GaugeVec
+    powerLimitEnforced              *prometheus.GaugeVec
+    powerLimitDefault               *prometheus.GaugeVec
+    pciTxThroughput                 *prometheus.GaugeVec
+    pciRxThroughput                 *prometheus.GaugeVec
+    pciLinkGenerationCurrent        *prometheus.GaugeVec
+    pciLinkGenerationMax            *prometheus.GaugeVec
+    pciLinkWidthCurrent             *prometheus.GaugeVec
+    pciLinkWidthMax                 *prometheus.GaugeVec
 }
 
 func NewCollector() *Collector {
@@ -128,6 +137,22 @@ func NewCollector() *Collector {
                 Namespace: namespace,
                 Name:      "temperature_celsius",
                 Help:      "Temperature of the GPU device in celsius",
+            },
+            labels,
+        ),
+        temperatureThresholdShutDown: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "temperature_threshold_shutdown_celcius",
+                Help:      "Temperature slowdown threshold celsius",
+            },
+            labels,
+        ),
+        temperatureThresholdSlowDown: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "temperature_threshold_slowdown_celcius",
+                Help:      "Temperature slowdown threshold in celsius",
             },
             labels,
         ),
@@ -198,48 +223,48 @@ func NewCollector() *Collector {
         grClockCurrent: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_gr_current",
-                Help:      "grClockCurrent returns the current speed of the graphics clock ",
+                Name:      "clock_gr_current_mhz",
+                Help:      "grClockCurrent returns the current speed of the graphics clock",
             },
             labels,
         ),
         grClockMax: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_gr_max",
-                Help:      "grClockMax returns the maximum speed of the graphics clock ",
+                Name:      "clock_gr_max_mhz",
+                Help:      "grClockMax returns the maximum speed of the graphics clock",
             },
             labels,
         ),
         SMClockCurrent: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_sm_current",
-                Help:      "smClockCurrent returns the current speed of the streaming multiprocessors (SM) clock ",
+                Name:      "clock_sm_current_mhz",
+                Help:      "smClockCurrent returns the current speed of the streaming multiprocessors (SM) clock",
             },
             labels,
         ),
         SMClockMax: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_sm_max",
-                Help:      "smClockMax returns the maximum speed of the streaming multiprocessors (SM) clock ",
+                Name:      "clock_sm_max_mhz",
+                Help:      "smClockMax returns the maximum speed of the streaming multiprocessors (SM) clock",
             },
             labels,
         ),
         memClockCurrent: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_mem_current",
-                Help:      "memClockCurrent returns the current speed of the memory clock ",
+                Name:      "clock_mem_current_mhz",
+                Help:      "memClockCurrent returns the current speed of the memory clock",
             },
             labels,
         ),
         memClockMax: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_mem_max",
-                Help:      "memClockMax returns the maximum speed of the memory clock ",
+                Name:      "clock_mem_max_mhz",
+                Help:      "memClockMax returns the maximum speed of the memory clock",
             },
             labels,
         ),
@@ -247,7 +272,7 @@ func NewCollector() *Collector {
             prometheus.GaugeOpts{
                 Namespace: namespace,
                 Name:      "clock_video_current",
-                Help:      "videolockCurrent returns the current speed of the video encoder/decoder clock ",
+                Help:      "videolockCurrent returns the current speed of the video encoder/decoder clock",
             },
             labels,
         ),
@@ -255,7 +280,7 @@ func NewCollector() *Collector {
             prometheus.GaugeOpts{
                 Namespace: namespace,
                 Name:      "clock_video_max",
-                Help:      "memClockMax returns the maximum speed of the video encoder/decoder clock ",
+                Help:      "memClockMax returns the maximum speed of the video encoder/decoder clock",
             },
             labels,
         ),
@@ -299,6 +324,62 @@ func NewCollector() *Collector {
             },
             labels,
         ),
+        powerLimitDefault: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "power_limit_default",
+                Help:      "DefaultPowerLimit returns the power limit for this GPU and its associated circuitry in milliwatts",
+            },
+            labels,
+        ),
+        pciTxThroughput: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "pci_throughput_tx",
+                Help:      "tx throughput in KB/s",
+            },
+            labels,
+        ),
+        pciRxThroughput: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "pci_throughput_rx",
+                Help:      "rx throughput in KB/s",
+            },
+            labels,
+        ),
+        pciLinkGenerationCurrent: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "pci_generation_current",
+                Help:      "current PCIe link generation",
+            },
+            labels,
+        ),
+        pciLinkGenerationMax: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "pci_generation_max",
+                Help:      "Max PCIe link generation",
+            },
+            labels,
+        ),
+        pciLinkWidthCurrent: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "pci_width_current",
+                Help:      "current PCIe link width",
+            },
+            labels,
+        ),
+        pciLinkWidthMax: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "pci_width_max",
+                Help:      "Max PCIe link width",
+            },
+            labels,
+        ),
     }
 }
 
@@ -312,6 +393,8 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.powerUsage.Describe(ch)
     c.avgPowerUsage.Describe(ch)
     c.temperature.Describe(ch)
+    c.temperatureThresholdShutDown.Describe(ch)
+    c.temperatureThresholdSlowDown.Describe(ch)
     c.fanSpeed.Describe(ch)
     c.encUsage.Describe(ch)
     c.decUsage.Describe(ch)
@@ -333,6 +416,13 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.powerState.Describe(ch)
     c.powerLimitManagement.Describe(ch)
     c.powerLimitEnforced.Describe(ch)
+    c.powerLimitDefault.Describe(ch)
+    c.pciTxThroughput.Describe(ch)
+    c.pciRxThroughput.Describe(ch)
+    c.pciLinkGenerationCurrent.Describe(ch)
+    c.pciLinkGenerationMax.Describe(ch)
+    c.pciLinkWidthCurrent.Describe(ch)
+    c.pciLinkWidthMax.Describe(ch)
 }
 
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
@@ -347,6 +437,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerUsage.Reset()
     c.avgPowerUsage.Reset()
     c.temperature.Reset()
+    c.temperatureThresholdShutDown.Reset()
+    c.temperatureThresholdSlowDown.Reset()
     c.fanSpeed.Reset()
     c.encUsage.Reset()
     c.decUsage.Reset()
@@ -368,6 +460,13 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerState.Reset()
     c.powerLimitManagement.Reset()
     c.powerLimitEnforced.Reset()
+    c.powerLimitDefault.Reset()
+    c.pciTxThroughput.Reset()
+    c.pciRxThroughput.Reset()
+    c.pciLinkGenerationCurrent.Reset()
+    c.pciLinkGenerationMax.Reset()
+    c.pciLinkWidthCurrent.Reset()
+    c.pciLinkWidthMax.Reset()
 
     numDevices, err := gonvml.DeviceCount()
     if err != nil {
@@ -461,12 +560,25 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement))
             c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced))
         }
+        powerLimitDefault, err := dev.DefaultPowerLimit()
+        if err != nil {
+            log.Printf("PowerLimitDefault() error: %v", err)
+        } else {
+            c.powerLimitDefault.WithLabelValues(minor, uuid, name).Set(float64(powerLimitDefault))
+        }
 
         temperature, err := dev.Temperature()
         if err != nil {
             log.Printf("Temperature() error: %v", err)
         } else {
             c.temperature.WithLabelValues(minor, uuid, name).Set(float64(temperature))
+        }
+        temperature_threshold_shutdown, temperature_threshold_slowdown, err := dev.TemperatureThresholds()
+        if err != nil {
+            log.Printf("TemperatureThresholds() error: %v", err)
+        } else {
+            c.temperatureThresholdShutDown.WithLabelValues(minor, uuid, name).Set(float64(temperature_threshold_shutdown))
+            c.temperatureThresholdSlowDown.WithLabelValues(minor, uuid, name).Set(float64(temperature_threshold_slowdown))
         }
 
         if !*disableFanSpeed {
@@ -537,6 +649,33 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
         if err == nil {
             c.videoClockMax.WithLabelValues(minor, uuid, name).Set(float64(videoClockMax))
         }
+
+
+        pciTxThroughput, err := dev.PcieTxThroughput()
+        if err == nil {
+            c.pciTxThroughput.WithLabelValues(minor, uuid, name).Set(float64(pciTxThroughput))
+        }
+        PciRxThroughput, err := dev.PcieRxThroughput()
+        if err == nil {
+            c.pciRxThroughput.WithLabelValues(minor, uuid, name).Set(float64(PciRxThroughput))
+        }
+        pciLinkGenerationCurrent, err := dev.PcieGeneration()
+        if err == nil {
+            c.pciLinkGenerationCurrent.WithLabelValues(minor, uuid, name).Set(float64(pciLinkGenerationCurrent))
+        }
+        pciLinkGenerationMax, err := dev.PcieMaxGeneration()
+        if err == nil {
+            c.pciLinkGenerationMax.WithLabelValues(minor, uuid, name).Set(float64(pciLinkGenerationMax))
+        }
+        pciLinkWidthCurrent, err := dev.PcieWidth()
+        if err == nil {
+            c.pciLinkWidthCurrent.WithLabelValues(minor, uuid, name).Set(float64(pciLinkWidthCurrent))
+        }
+        pciLinkWidthMax, err := dev.PcieMaxWidth()
+        if err == nil {
+            c.pciLinkWidthMax.WithLabelValues(minor, uuid, name).Set(float64(pciLinkWidthMax))
+        }
+
     }
     c.usedMemory.Collect(ch)
     c.totalMemory.Collect(ch)
@@ -545,6 +684,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerUsage.Collect(ch)
     c.avgPowerUsage.Collect(ch)
     c.temperature.Collect(ch)
+    c.temperatureThresholdShutDown.Collect(ch)
+    c.temperatureThresholdSlowDown.Collect(ch)
     c.fanSpeed.Collect(ch)
     c.encUsage.Collect(ch)
     c.decUsage.Collect(ch)
@@ -566,6 +707,13 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerState.Collect(ch)
     c.powerLimitManagement.Collect(ch)
     c.powerLimitEnforced.Collect(ch)
+    c.powerLimitDefault.Collect(ch)
+    c.pciTxThroughput.Collect(ch)
+    c.pciRxThroughput.Collect(ch)
+    c.pciLinkGenerationCurrent.Collect(ch)
+    c.pciLinkGenerationMax.Collect(ch)
+    c.pciLinkWidthCurrent.Collect(ch)
+    c.pciLinkWidthMax.Collect(ch)
 }
 
 func main() {
