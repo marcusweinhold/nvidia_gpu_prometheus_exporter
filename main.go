@@ -62,6 +62,8 @@ type Collector struct {
     powerLimitConstraintsMin *prometheus.GaugeVec
     powerLimitConstraintsMax *prometheus.GaugeVec
     powerState              *prometheus.GaugeVec
+    powerLimitManagement    *prometheus.GaugeVec
+    powerLimitEnforced      *prometheus.GaugeVec
 }
 
 func NewCollector() *Collector {
@@ -281,6 +283,22 @@ func NewCollector() *Collector {
             },
             labels,
         ),
+        powerLimitManagement: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "power_limit_management",
+                Help:      "The power limit defines the upper boundary for the card's power draw. If the card's total power draw reaches this limit the power management algorithm kicks in.",
+            },
+            labels,
+        ),
+        powerLimitEnforced: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "power_limit_enforced",
+                Help:      "Effective power limit that the driver enforces after taking into account all limiters.  Note: This can be different from the management limit if other limits are set elsewhere This includes the out of band power limit interface",
+            },
+            labels,
+        ),
     }
 }
 
@@ -313,6 +331,8 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.powerLimitConstraintsMin.Describe(ch)
     c.powerLimitConstraintsMax.Describe(ch)
     c.powerState.Describe(ch)
+    c.powerLimitManagement.Describe(ch)
+    c.powerLimitEnforced.Describe(ch)
 }
 
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
@@ -346,6 +366,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerLimitConstraintsMin.Reset()
     c.powerLimitConstraintsMax.Reset()
     c.powerState.Reset()
+    c.powerLimitManagement.Reset()
+    c.powerLimitEnforced.Reset()
 
     numDevices, err := gonvml.DeviceCount()
     if err != nil {
@@ -432,6 +454,14 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
         } else {
             c.powerState.WithLabelValues(minor, uuid, name).Set(float64(powerState))
         }
+        powerLimitManagement, powerLimitEnforced, err := dev.PowerLimits()
+        if err != nil {
+            log.Printf("PowerLimits() error: %v", err)
+        } else {
+            c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement))
+            c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced))
+        }
+
         temperature, err := dev.Temperature()
         if err != nil {
             log.Printf("Temperature() error: %v", err)
@@ -534,6 +564,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerLimitConstraintsMin.Collect(ch)
     c.powerLimitConstraintsMax.Collect(ch)
     c.powerState.Collect(ch)
+    c.powerLimitManagement.Collect(ch)
+    c.powerLimitEnforced.Collect(ch)
 }
 
 func main() {
