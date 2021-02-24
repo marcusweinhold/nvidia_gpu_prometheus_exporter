@@ -64,7 +64,6 @@ type Collector struct {
     videoClockMax                   *prometheus.GaugeVec
     powerLimitConstraintsMin        *prometheus.GaugeVec
     powerLimitConstraintsMax        *prometheus.GaugeVec
-    powerState                      *prometheus.GaugeVec
     powerLimitManagement            *prometheus.GaugeVec
     powerLimitEnforced              *prometheus.GaugeVec
     powerLimitDefault               *prometheus.GaugeVec
@@ -309,14 +308,6 @@ func NewCollector() *Collector {
             },
             labels,
         ),
-        powerState: prometheus.NewGaugeVec(
-            prometheus.GaugeOpts{
-                Namespace: namespace,
-                Name:      "power_state",
-                Help:      "PowerState returns the current PState of the GPU Device",
-            },
-            labels,
-        ),
         powerLimitManagement: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
@@ -423,7 +414,6 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.videoClockMax.Describe(ch)
     c.powerLimitConstraintsMin.Describe(ch)
     c.powerLimitConstraintsMax.Describe(ch)
-    c.powerState.Describe(ch)
     c.powerLimitManagement.Describe(ch)
     c.powerLimitEnforced.Describe(ch)
     c.powerLimitDefault.Describe(ch)
@@ -468,7 +458,6 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.videoClockMax.Reset()
     c.powerLimitConstraintsMin.Reset()
     c.powerLimitConstraintsMax.Reset()
-    c.powerState.Reset()
     c.powerLimitManagement.Reset()
     c.powerLimitEnforced.Reset()
     c.powerLimitDefault.Reset()
@@ -558,12 +547,6 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.powerLimitConstraintsMax.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMax))
         }
 
-        powerState, err := dev.PowerState()
-        if err != nil {
-            log.Printf("PowerState() error: %v", err)
-        } else {
-            c.powerState.WithLabelValues(minor, uuid, name).Set(float64(powerState))
-        }
         powerLimitManagement, powerLimitEnforced, err := dev.PowerLimits()
         if err != nil {
             log.Printf("PowerLimits() error: %v", err)
@@ -723,7 +706,6 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.videoClockMax.Collect(ch)
     c.powerLimitConstraintsMin.Collect(ch)
     c.powerLimitConstraintsMax.Collect(ch)
-    c.powerState.Collect(ch)
     c.powerLimitManagement.Collect(ch)
     c.powerLimitEnforced.Collect(ch)
     c.powerLimitDefault.Collect(ch)
