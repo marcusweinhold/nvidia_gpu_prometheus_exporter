@@ -122,24 +122,24 @@ func NewCollector() *Collector {
         powerUsage: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_usage_milliwatts",
-                Help:      "Power usage of the GPU device in milliwatts",
+                Name:      "power_usage_watts",
+                Help:      "Power usage of the GPU device in watts",
             },
             labels,
         ),
         avgPowerUsage: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "avg_power_usage_milliwatts",
-                Help:      "power usage for this GPU and its associated circuitry in milliwatts averaged over the samples collected in the last `since` duration.",
+                Name:      "avg_power_usage_watts",
+                Help:      "power usage for this GPU and its associated circuitry in watts averaged over the samples collected in the last `since` duration.",
             },
             labels,
         ),
         energyConsumption: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "energy_consumption_millijoules",
-                Help:      "total energy consumption for this GPU in millijoules (mJ) since the driver was last reloaded.",
+                Name:      "energy_consumption_joules",
+                Help:      "total energy consumption for this GPU in joules (J) since the driver was last reloaded.",
             },
             labels,
         ),
@@ -306,7 +306,7 @@ func NewCollector() *Collector {
         powerLimitConstraintsMin: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_limit_min",
+                Name:      "power_limit_min_watts",
                 Help:      "PowerLimitConstraints retrieves information about possible values of power management limits on this device (min)",
             },
             labels,
@@ -314,7 +314,7 @@ func NewCollector() *Collector {
         powerLimitConstraintsMax: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_limit_max",
+                Name:      "power_limit_max_watts",
                 Help:      "PowerLimitConstraints retrieves information about possible values of power management limits on this device (max)",
             },
             labels,
@@ -322,7 +322,7 @@ func NewCollector() *Collector {
         powerLimitManagement: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_limit_management",
+                Name:      "power_limit_management_watts",
                 Help:      "The power limit defines the upper boundary for the card's power draw. If the card's total power draw reaches this limit the power management algorithm kicks in.",
             },
             labels,
@@ -330,7 +330,7 @@ func NewCollector() *Collector {
         powerLimitEnforced: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_limit_enforced",
+                Name:      "power_limit_enforced_watts",
                 Help:      "Effective power limit that the driver enforces after taking into account all limiters.  Note: This can be different from the management limit if other limits are set elsewhere This includes the out of band power limit interface",
             },
             labels,
@@ -338,15 +338,15 @@ func NewCollector() *Collector {
         powerManagementDefaultLimit: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_management_default_limit",
-                Help:      "PowerManagementDefaultLimit returns the power limit for this GPU and its associated circuitry in milliwatts",
+                Name:      "power_management_default_limit_watts",
+                Help:      "PowerManagementDefaultLimit returns the power limit for this GPU and its associated circuitry in watts",
             },
             labels,
         ),
         pciTxThroughput: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "pci_throughput_tx",
+                Name:      "pci_throughput_tx_kilobytes_per_second",
                 Help:      "tx throughput in KB/s",
             },
             labels,
@@ -354,7 +354,7 @@ func NewCollector() *Collector {
         pciRxThroughput: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "pci_throughput_rx",
+                Name:      "pci_throughput_rx_kilobytes_per_second",
                 Help:      "rx throughput in KB/s",
             },
             labels,
@@ -562,43 +562,43 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
         if err != nil {
             log.Printf("PowerUsage() error: %v", err)
         } else {
-            c.powerUsage.WithLabelValues(minor, uuid, name).Set(float64(powerUsage))
+            c.powerUsage.WithLabelValues(minor, uuid, name).Set(float64(powerUsage/1000))
         }
 
         avgPowerUsage, err := dev.AveragePowerUsage(averageDuration)
         if err != nil {
             log.Printf("AveragePowerUsage() error: %v", err)
         } else {
-            c.avgPowerUsage.WithLabelValues(minor, uuid, name).Set(float64(avgPowerUsage))
+            c.avgPowerUsage.WithLabelValues(minor, uuid, name).Set(float64(avgPowerUsage/1000))
         }
 
         energyConsumption, err := dev.TotalEnergyConsumption()
         if err != nil {
             log.Printf("TotalEnergyConsumption() error: %v", err)
         } else {
-            c.energyConsumption.WithLabelValues(minor, uuid, name).Set(float64(energyConsumption))
+            c.energyConsumption.WithLabelValues(minor, uuid, name).Set(float64(energyConsumption/1000))
         }
 
         powerLimitConstraintsMin, powerLimitConstraintsMax, err := dev.PowerLimitConstraints()
         if err != nil {
             log.Printf("PowerLimitConstraints() error: %v", err)
         } else {
-            c.powerLimitConstraintsMin.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMin))
-            c.powerLimitConstraintsMax.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMax))
+            c.powerLimitConstraintsMin.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMin/1000))
+            c.powerLimitConstraintsMax.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMax/1000))
         }
 
         powerLimitManagement, powerLimitEnforced, err := dev.PowerLimits()
         if err != nil {
             log.Printf("PowerLimits() error: %v", err)
         } else {
-            c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement))
-            c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced))
+            c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement/1000))
+            c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced/1000))
         }
         powerManagementDefaultLimit, err := dev.PowerManagementDefaultLimit()
         if err != nil {
             log.Printf("PowerManagementDefaultLimit() error: %v", err)
         } else {
-            c.powerManagementDefaultLimit.WithLabelValues(minor, uuid, name).Set(float64(powerManagementDefaultLimit))
+            c.powerManagementDefaultLimit.WithLabelValues(minor, uuid, name).Set(float64(powerManagementDefaultLimit/1000))
         }
 
         temperature, err := dev.Temperature()
