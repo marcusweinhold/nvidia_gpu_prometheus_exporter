@@ -42,6 +42,7 @@ type Collector struct {
     totalBar1Memory                 *prometheus.GaugeVec
     powerUsage                      *prometheus.GaugeVec
     avgPowerUsage                   *prometheus.GaugeVec
+    energyConsumption               *prometheus.GaugeVec
     temperature                     *prometheus.GaugeVec
     temperatureThresholdShutDown    *prometheus.GaugeVec
     temperatureThresholdSlowDown    *prometheus.GaugeVec
@@ -66,13 +67,15 @@ type Collector struct {
     powerLimitConstraintsMax        *prometheus.GaugeVec
     powerLimitManagement            *prometheus.GaugeVec
     powerLimitEnforced              *prometheus.GaugeVec
-    powerLimitDefault               *prometheus.GaugeVec
+    powerManagementDefaultLimit     *prometheus.GaugeVec
     pciTxThroughput                 *prometheus.GaugeVec
     pciRxThroughput                 *prometheus.GaugeVec
     pciLinkGenerationCurrent        *prometheus.GaugeVec
     pciLinkGenerationMax            *prometheus.GaugeVec
     pciLinkWidthCurrent             *prometheus.GaugeVec
     pciLinkWidthMax                 *prometheus.GaugeVec
+    videoEncoderCapacityH264        *prometheus.GaugeVec
+    videoEncoderCapacityHEVC        *prometheus.GaugeVec
 }
 
 func NewCollector() *Collector {
@@ -129,6 +132,14 @@ func NewCollector() *Collector {
                 Namespace: namespace,
                 Name:      "avg_power_usage_milliwatts",
                 Help:      "power usage for this GPU and its associated circuitry in milliwatts averaged over the samples collected in the last `since` duration.",
+            },
+            labels,
+        ),
+        energyConsumption: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "energy_consumption_millijoules",
+                Help:      "total energy consumption for this GPU in millijoules (mJ) since the driver was last reloaded.",
             },
             labels,
         ),
@@ -199,7 +210,7 @@ func NewCollector() *Collector {
         avgGPUUtilization: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "avg_gpu_utilization",
+                Name:      "avg_gpu_utilization_percent",
                 Help:      "avgGPUUtilization returns the percent of time over the past sample period during which one or more kernels were executing on the GPU.",
             },
             labels,
@@ -324,11 +335,11 @@ func NewCollector() *Collector {
             },
             labels,
         ),
-        powerLimitDefault: prometheus.NewGaugeVec(
+        powerManagementDefaultLimit: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "power_limit_default",
-                Help:      "DefaultPowerLimit returns the power limit for this GPU and its associated circuitry in milliwatts",
+                Name:      "power_management_default_limit",
+                Help:      "PowerManagementDefaultLimit returns the power limit for this GPU and its associated circuitry in milliwatts",
             },
             labels,
         ),
@@ -380,6 +391,22 @@ func NewCollector() *Collector {
             },
             labels,
         ),
+        videoEncoderCapacityH264: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "video_encoder_capacity_h264",
+                Help:      "Percentage of maximum encoder capacity (H264)",
+            },
+            labels,
+        ),
+        videoEncoderCapacityHEVC: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "video_encoder_capacity_hevc",
+                Help:      "Percentage of maximum encoder capacity (HEVC)",
+            },
+            labels,
+        ),
     }
 }
 
@@ -392,6 +419,7 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.totalBar1Memory.Describe(ch)
     c.powerUsage.Describe(ch)
     c.avgPowerUsage.Describe(ch)
+    c.energyConsumption.Describe(ch)
     c.temperature.Describe(ch)
     c.temperatureThresholdShutDown.Describe(ch)
     c.temperatureThresholdSlowDown.Describe(ch)
@@ -416,13 +444,15 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.powerLimitConstraintsMax.Describe(ch)
     c.powerLimitManagement.Describe(ch)
     c.powerLimitEnforced.Describe(ch)
-    c.powerLimitDefault.Describe(ch)
+    c.powerManagementDefaultLimit.Describe(ch)
     c.pciTxThroughput.Describe(ch)
     c.pciRxThroughput.Describe(ch)
     c.pciLinkGenerationCurrent.Describe(ch)
     c.pciLinkGenerationMax.Describe(ch)
     c.pciLinkWidthCurrent.Describe(ch)
     c.pciLinkWidthMax.Describe(ch)
+    c.videoEncoderCapacityH264.Describe(ch)
+    c.videoEncoderCapacityHEVC.Describe(ch)
 }
 
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
@@ -436,6 +466,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.totalBar1Memory.Reset()
     c.powerUsage.Reset()
     c.avgPowerUsage.Reset()
+    c.energyConsumption.Reset()
     c.temperature.Reset()
     c.temperatureThresholdShutDown.Reset()
     c.temperatureThresholdSlowDown.Reset()
@@ -460,13 +491,15 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerLimitConstraintsMax.Reset()
     c.powerLimitManagement.Reset()
     c.powerLimitEnforced.Reset()
-    c.powerLimitDefault.Reset()
+    c.powerManagementDefaultLimit.Reset()
     c.pciTxThroughput.Reset()
     c.pciRxThroughput.Reset()
     c.pciLinkGenerationCurrent.Reset()
     c.pciLinkGenerationMax.Reset()
     c.pciLinkWidthCurrent.Reset()
     c.pciLinkWidthMax.Reset()
+    c.videoEncoderCapacityH264.Reset()
+    c.videoEncoderCapacityHEVC.Reset()
 
     numDevices, err := gonvml.DeviceCount()
     if err != nil {
@@ -539,6 +572,13 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.avgPowerUsage.WithLabelValues(minor, uuid, name).Set(float64(avgPowerUsage))
         }
 
+        energyConsumption, err := dev.TotalEnergyConsumption()
+        if err != nil {
+            log.Printf("TotalEnergyConsumption() error: %v", err)
+        } else {
+            c.energyConsumption.WithLabelValues(minor, uuid, name).Set(float64(energyConsumption))
+        }
+
         powerLimitConstraintsMin, powerLimitConstraintsMax, err := dev.PowerLimitConstraints()
         if err != nil {
             log.Printf("PowerLimitConstraints() error: %v", err)
@@ -554,11 +594,11 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement))
             c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced))
         }
-        powerLimitDefault, err := dev.DefaultPowerLimit()
+        powerManagementDefaultLimit, err := dev.PowerManagementDefaultLimit()
         if err != nil {
-            log.Printf("PowerLimitDefault() error: %v", err)
+            log.Printf("PowerManagementDefaultLimit() error: %v", err)
         } else {
-            c.powerLimitDefault.WithLabelValues(minor, uuid, name).Set(float64(powerLimitDefault))
+            c.powerManagementDefaultLimit.WithLabelValues(minor, uuid, name).Set(float64(powerManagementDefaultLimit))
         }
 
         temperature, err := dev.Temperature()
@@ -676,6 +716,11 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
         if err == nil {
             c.pciLinkWidthMax.WithLabelValues(minor, uuid, name).Set(float64(pciLinkWidthMax))
         }
+        caph264, caphevc, err := dev.EncoderCapacity()
+        if err == nil {
+            c.videoEncoderCapacityH264.WithLabelValues(minor, uuid, name).Set(float64(caph264))
+            c.videoEncoderCapacityHEVC.WithLabelValues(minor, uuid, name).Set(float64(caphevc))
+        }
 
     }
     c.usedMemory.Collect(ch)
@@ -684,6 +729,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.totalBar1Memory.Collect(ch)
     c.powerUsage.Collect(ch)
     c.avgPowerUsage.Collect(ch)
+    c.energyConsumption.Collect(ch)
     c.temperature.Collect(ch)
     c.temperatureThresholdShutDown.Collect(ch)
     c.temperatureThresholdSlowDown.Collect(ch)
@@ -708,13 +754,15 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.powerLimitConstraintsMax.Collect(ch)
     c.powerLimitManagement.Collect(ch)
     c.powerLimitEnforced.Collect(ch)
-    c.powerLimitDefault.Collect(ch)
+    c.powerManagementDefaultLimit.Collect(ch)
     c.pciTxThroughput.Collect(ch)
     c.pciRxThroughput.Collect(ch)
     c.pciLinkGenerationCurrent.Collect(ch)
     c.pciLinkGenerationMax.Collect(ch)
     c.pciLinkWidthCurrent.Collect(ch)
     c.pciLinkWidthMax.Collect(ch)
+    c.videoEncoderCapacityH264.Collect(ch)
+    c.videoEncoderCapacityHEVC.Collect(ch)
 }
 
 func main() {
