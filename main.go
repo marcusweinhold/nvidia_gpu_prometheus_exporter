@@ -45,6 +45,7 @@ type Collector struct {
     temperature                     *prometheus.GaugeVec
     temperatureThresholdShutDown    *prometheus.GaugeVec
     temperatureThresholdSlowDown    *prometheus.GaugeVec
+    throttlingReason                *prometheus.GaugeVec
     fanSpeed                        *prometheus.GaugeVec
     encUsage                        *prometheus.GaugeVec
     decUsage                        *prometheus.GaugeVec
@@ -153,6 +154,14 @@ func NewCollector() *Collector {
                 Namespace: namespace,
                 Name:      "temperature_threshold_slowdown_celcius",
                 Help:      "Temperature slowdown threshold in celsius",
+            },
+            labels,
+        ),
+        throttlingReason: prometheus.NewGaugeVec(
+            prometheus.GaugeOpts{
+                Namespace: namespace,
+                Name:      "throttling_reason",
+                Help:      "Most serious reason for the GPU being throttling",
             },
             labels,
         ),
@@ -271,7 +280,7 @@ func NewCollector() *Collector {
         videoClockCurrent: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_video_current",
+                Name:      "clock_video_current_mhz",
                 Help:      "videolockCurrent returns the current speed of the video encoder/decoder clock",
             },
             labels,
@@ -279,7 +288,7 @@ func NewCollector() *Collector {
         videoClockMax: prometheus.NewGaugeVec(
             prometheus.GaugeOpts{
                 Namespace: namespace,
-                Name:      "clock_video_max",
+                Name:      "clock_video_max_mhz",
                 Help:      "memClockMax returns the maximum speed of the video encoder/decoder clock",
             },
             labels,
@@ -395,6 +404,7 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
     c.temperature.Describe(ch)
     c.temperatureThresholdShutDown.Describe(ch)
     c.temperatureThresholdSlowDown.Describe(ch)
+    c.throttlingReason.Describe(ch)
     c.fanSpeed.Describe(ch)
     c.encUsage.Describe(ch)
     c.decUsage.Describe(ch)
@@ -439,6 +449,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.temperature.Reset()
     c.temperatureThresholdShutDown.Reset()
     c.temperatureThresholdSlowDown.Reset()
+    c.throttlingReason.Reset()
     c.fanSpeed.Reset()
     c.encUsage.Reset()
     c.decUsage.Reset()
@@ -581,6 +592,13 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.temperatureThresholdSlowDown.WithLabelValues(minor, uuid, name).Set(float64(temperature_threshold_slowdown))
         }
 
+        throttling_reason, err := dev.MostSeriousClocksThrottleReason()
+        if err != nil {
+            log.Printf("throttlingReason() error: %v", err)
+        } else {
+            c.throttlingReason.WithLabelValues(minor, uuid, name).Set(float64(throttling_reason))
+        }
+
         if *enableFanSpeed {
             fanSpeed, err := dev.FanSpeed()
             if err != nil {
@@ -686,6 +704,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
     c.temperature.Collect(ch)
     c.temperatureThresholdShutDown.Collect(ch)
     c.temperatureThresholdSlowDown.Collect(ch)
+    c.throttlingReason.Collect(ch)
     c.fanSpeed.Collect(ch)
     c.encUsage.Collect(ch)
     c.decUsage.Collect(ch)
