@@ -10,6 +10,8 @@ github.com/cespare/xxhash/v2 v2.1.1 h1:6MnRN8NT7+YBpUIWxHtefFZOKTAPgGjpQSxqLNn0+
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cfsmp3/gonvml v0.0.0-20190828220739-9ebdce4bb989 h1:yERlgatNHz1DICCSbpndUoBwtQX8haKGQaW0X3rbyT4=
 github.com/cfsmp3/gonvml v0.0.0-20190828220739-9ebdce4bb989/go.mod h1:mHePyfjLFeCKiqdBbfcp6EsZ8DuiqmyErsxO9r/H9FQ=
+github.com/cfsmp3/gonvml v0.0.6 h1:NA4Ac44F8SMHLhDh+wnjmut1wG3sep+kCQSdwJ+msYo=
+github.com/cfsmp3/gonvml v0.0.6/go.mod h1:mHePyfjLFeCKiqdBbfcp6EsZ8DuiqmyErsxO9r/H9FQ=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=

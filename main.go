@@ -23,6 +23,9 @@ const (
 var (
     addr = flag.String("web.listen-address", ":9445", "Address to listen on for web interface and telemetry.")
     enableFanSpeed = flag.Bool("enable-fanspeed", true, "Enable fanspeed metric")
+    enablePowerLimits = flag.Bool("enable-powerlimits", true, "Enable power limit metrics")
+    enableAveragePowerUsage = flag.Bool("enable-averagepowerusage", true, "Enable average power usage metric")
+
 
     labels = []string{"minor_number", "uuid", "name"}
 
@@ -565,11 +568,13 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.powerUsage.WithLabelValues(minor, uuid, name).Set(float64(powerUsage/1000))
         }
 
-        avgPowerUsage, err := dev.AveragePowerUsage(averageDuration)
-        if err != nil {
-            log.Printf("AveragePowerUsage() error: %v", err)
-        } else {
-            c.avgPowerUsage.WithLabelValues(minor, uuid, name).Set(float64(avgPowerUsage/1000))
+        if *enableAveragePowerUsage {
+            avgPowerUsage, err := dev.AveragePowerUsage(averageDuration)
+            if err != nil {
+                log.Printf("AveragePowerUsage() error: %v", err)
+            } else {
+                c.avgPowerUsage.WithLabelValues(minor, uuid, name).Set(float64(avgPowerUsage/1000))
+            }
         }
 
         energyConsumption, err := dev.TotalEnergyConsumption()
@@ -579,26 +584,28 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
             c.energyConsumption.WithLabelValues(minor, uuid, name).Set(float64(energyConsumption/1000))
         }
 
-        powerLimitConstraintsMin, powerLimitConstraintsMax, err := dev.PowerLimitConstraints()
-        if err != nil {
-            log.Printf("PowerLimitConstraints() error: %v", err)
-        } else {
-            c.powerLimitConstraintsMin.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMin/1000))
-            c.powerLimitConstraintsMax.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMax/1000))
-        }
+        if *enablePowerLimits {
+            powerLimitConstraintsMin, powerLimitConstraintsMax, err := dev.PowerLimitConstraints()
+            if err != nil {
+                log.Printf("PowerLimitConstraints() error: %v", err)
+            } else {
+                c.powerLimitConstraintsMin.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMin/1000))
+                c.powerLimitConstraintsMax.WithLabelValues(minor, uuid, name).Set(float64(powerLimitConstraintsMax/1000))
+            }
 
-        powerLimitManagement, powerLimitEnforced, err := dev.PowerLimits()
-        if err != nil {
-            log.Printf("PowerLimits() error: %v", err)
-        } else {
-            c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement/1000))
-            c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced/1000))
-        }
-        powerManagementDefaultLimit, err := dev.PowerManagementDefaultLimit()
-        if err != nil {
-            log.Printf("PowerManagementDefaultLimit() error: %v", err)
-        } else {
-            c.powerManagementDefaultLimit.WithLabelValues(minor, uuid, name).Set(float64(powerManagementDefaultLimit/1000))
+            powerLimitManagement, powerLimitEnforced, err := dev.PowerLimits()
+            if err != nil {
+                log.Printf("PowerLimits() error: %v", err)
+            } else {
+                c.powerLimitManagement.WithLabelValues(minor, uuid, name).Set(float64(powerLimitManagement/1000))
+                c.powerLimitEnforced.WithLabelValues(minor, uuid, name).Set(float64(powerLimitEnforced/1000))
+            }
+            powerManagementDefaultLimit, err := dev.PowerManagementDefaultLimit()
+            if err != nil {
+                log.Printf("PowerManagementDefaultLimit() error: %v", err)
+            } else {
+                c.powerManagementDefaultLimit.WithLabelValues(minor, uuid, name).Set(float64(powerManagementDefaultLimit/1000))
+            }
         }
 
         temperature, err := dev.Temperature()
